@@ -14,6 +14,7 @@ ByteMind.buildPlugins = function(){
 
 //---BUILD PAGE---
 
+var SECTION_PREFIX = "#!";		//note: changing this requires regEx rework
 var HOME = "welcome";
 var activeSection = "blank";
 var sideMenu;
@@ -32,7 +33,7 @@ $(document).ready(function(){
 	//debug
 	var clientInfo = document.createElement('span');
 	clientInfo.innerHTML = ByteMind.config.clientInfo;
-	$(clientInfo).css({position:'fixed', bottom:'0', right:'0'});
+	$(clientInfo).css({position:'fixed', bottom:'0', right:'0', 'z-index':'99', opacity:'0.33', 'font-size':'11px'});
 	$('body').append(clientInfo);
 	
 	//check page actions and register hashchange event listener
@@ -164,10 +165,12 @@ function registerSectionWithNavButton(uiName, data, alternativeTarget){
 	//add callback
 	data.callback = switchSection;
 	//build button
-	var btn = document.createElement('button');
+	var btn = document.createElement('a');		//document.createElement('button');
 	btn.className = 'bytemind-nav-bar-button';
 	btn.innerHTML = uiName;
+	btn.href = SECTION_PREFIX + data.sectionName;
 	$(btn).on('click', function(){
+		event.preventDefault();
 		var options = {
 			animate : true
 		}
@@ -219,7 +222,7 @@ function switchSection(data, options){
 	if (window.location.href.indexOf('?') >= 0){
 		urlParams = window.location.href.replace(/.*(\?.*?)(#!|$).*/,"$1").trim();
 	}
-	var newHref = (window.location.href.replace(/(\?.*?#!.*|#!.*|\?.*)/,"").trim()  + "#!" + data.sectionName + urlParams).trim();
+	var newHref = (window.location.href.replace(/(\?.*?#!.*|#!.*|\?.*)/,"").trim()  + SECTION_PREFIX + data.sectionName + urlParams).trim();
 	if (!replaceHistory){
 		if (newHref !== window.location.href){
 			history.pushState({sectionName : data.sectionName}, "", newHref);
