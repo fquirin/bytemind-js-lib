@@ -1,0 +1,52 @@
+/* --- SIDE MENU --- */
+
+.bytemind-side-menu,
+.bytemind-side-menu-right {
+	position: absolute;
+	top: 0;
+	left: -300px;
+	background-color: #2F3035;
+	height: 100%;
+	width: 300px;
+	z-index: 5;
+}
+.bytemind-side-menu-right {
+	left: auto;
+	right: -300px;
+}
+@media screen and (max-width: 400px) {
+	.bytemind-side-menu {
+		width: 100%;
+	}
+}
+.bytemind-side-menu-interlayer {
+	display: none;
+	position: absolute;
+	top: 0;
+	left: 0;
+	background-color: rgba(33, 33, 33, 0.20);
+	height: 100%;
+	width: 100%;
+	z-index: 4;
+}
+.bytemind-swipe-area-left,
+.bytemind-swipe-area-right {
+	position: absolute;
+	top: 0;
+	left: 0;
+	background-color: transparent;
+	height: 100%;
+	width: 20px;
+	z-index: 10;
+}
+.bytemind-swipe-area-right {
+	left: auto;
+	right: 0;
+}
+.bytemind-swipe-active {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+}
