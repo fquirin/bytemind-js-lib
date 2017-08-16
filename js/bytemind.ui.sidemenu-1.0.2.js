@@ -1,5 +1,13 @@
+//requires: jQuery, Hammer.js
+
 //sidebar
 function bytemind_build_ui_sidemenu(){
+	
+	//add sidebar ease function
+	jQuery.easing['bytemind-sidebar'] = function (x, t, b, c, d) {
+		//easeOutQuad
+		return -c *(t/=d)*(t-2) + b;
+	}
 	
 	var SideMenu = function(menuSelector, options){
 		var isRightBound, swipeAreas, onMenuOpen, onMenuClose, interlayer, menuButton;
@@ -21,6 +29,10 @@ function bytemind_build_ui_sidemenu(){
 		
 		self.isOpen = false;
 		
+		self.getMenuElement = function(){
+			return menuSelector;
+		}
+		
 		var leftOrRight = 'left';		if (isRightBound) leftOrRight = 'right';
 		function cssLeftOrRight(value){
 			var css = {};
@@ -36,22 +48,25 @@ function bytemind_build_ui_sidemenu(){
 		var errorResetTimer;
 	
 		self.init = function() {
+			//TODO: write a destroy function as well?
 			menuWidth = $sidemenu.outerWidth();
 			$sidemenu.css(cssLeftOrRight(-menuWidth + 'px'));
 			self.isOpen = false;
 			//listen for size changes
 			$(window).on('load resize orientationchange', function() {
-				menuWidth = $sidemenu.outerWidth();
+				self.refresh();
 			});
 			//set interlayer button
 			if ($interlayer){
-				$interlayer.on('click', function(){
+				ByteMind.ui.onclick($interlayer[0], function(){
+				//$interlayer.on('click', function(){
 					self.close();
 				});
 			}
 			//set menu button
 			if (menuButton){
-				$(menuButton).on('click', function(){
+				//$(menuButton).on('click', function(){
+				ByteMind.ui.onclick($(menuButton)[0], function(ev){
 					if (self.isOpen){
 						self.close();
 					}else{
@@ -60,15 +75,19 @@ function bytemind_build_ui_sidemenu(){
 				});
 			}
 			if (menuButtonClose){
-				$(menuButtonClose).on('click', function(){
+				ByteMind.ui.onclick($(menuButtonClose)[0], function(){
 					self.close();
 				});
 			}
 		}
 		self.refresh = function() {
 			menuWidth = $sidemenu.outerWidth();
-			$sidemenu.css(cssLeftOrRight(-menuWidth + 'px'));
-			self.isOpen = false;
+			if (self.isOpen){
+				$sidemenu.css(cssLeftOrRight('0'));
+			}else{
+				$sidemenu.css(cssLeftOrRight(-menuWidth + 'px'));
+				//self.isOpen = false;
+			}
 		}
 		
 		self.open = function(){
@@ -83,16 +102,20 @@ function bytemind_build_ui_sidemenu(){
 					(''+leftOrRight): 0
 				});
 			*/
-			$sidemenu.animate(cssLeftOrRight('0'));
+			$sidemenu.stop().animate(cssLeftOrRight('0'), 300, 'bytemind-sidebar');
 			if ($interlayer) $interlayer.fadeIn(300);
 			self.isOpen = true;
 			lastLeftOrRight = 0;
 			if (onMenuOpen) onMenuOpen();
 		}
 		
-		self.close = function(){
+		self.close = function(skipAnimation){
 			clearTimeout(errorResetTimer);
-			$sidemenu.animate(cssLeftOrRight(-menuWidth + 'px'));
+			if (skipAnimation){
+				$sidemenu.css(cssLeftOrRight(-menuWidth + 'px'));
+			}else{
+				$sidemenu.stop().animate(cssLeftOrRight(-menuWidth + 'px'), 300, 'bytemind-sidebar');
+			}
 			if ($interlayer) $interlayer.fadeOut(300);
 			self.isOpen = false;
 			lastLeftOrRight = -menuWidth;
@@ -125,7 +148,7 @@ function bytemind_build_ui_sidemenu(){
 			return (pos >= 0) || (pos <= -menuWidth);
 		}
 		
-		function decideDirectionAndSlide(deltaX){
+		function decideDirectionAndSlide(deltaX, e){
 			lastDeltaX = 0;
 			if (Math.abs(deltaX) > menuWidth * panBoundary) {
 				if (deltaX < 0){
@@ -179,7 +202,7 @@ function bytemind_build_ui_sidemenu(){
 					}
 					break;
 				default:
-					decideDirectionAndSlide(lastDeltaX);
+					decideDirectionAndSlide(lastDeltaX, e);
 			}
 			$.each(hammers, function(index, hammer){
 				hammer.stop(true);
@@ -199,10 +222,10 @@ function bytemind_build_ui_sidemenu(){
 					break;
 				case 'panend':
 				case 'pancancel':
-					decideDirectionAndSlide(e.deltaX);
+					decideDirectionAndSlide(e.deltaX, e);
 					break;
 				default:
-					decideDirectionAndSlide(lastDeltaX);
+					decideDirectionAndSlide(lastDeltaX, e);
 			}
 		}
 		

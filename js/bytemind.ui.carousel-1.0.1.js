@@ -1,3 +1,6 @@
+//requires: jQuery, Hammer.js
+
+//Pane carousel
 function bytemind_build_ui_carousel(){
 	//copied from SepiaFW
 	
@@ -50,6 +53,7 @@ function bytemind_build_ui_carousel(){
 		}
 
 		self.init = function() {
+			//TODO: write a "destroy" function as well?
 			setPaneSize();
 			$(window).on('load resize orientationchange', function() {
 				setPaneSize();
