@@ -9,6 +9,9 @@ function bytemind_build_ui_sidemenu(){
 		return -c *(t/=d)*(t-2) + b;
 	}
 	
+	var transformSmoothing = 'transform .15s';	//when using "no transition" there is still a slight delay to smooth the pan.
+	//TODO: for firefox and IE this should be 0, this also may look awkward when resizing the window!
+	
 	var SideMenu = function(menuSelector, options){
 		var isRightBound, swipeAreas, onMenuOpen, onMenuClose, interlayer, menuButton;
 		if (options){
@@ -34,22 +37,37 @@ function bytemind_build_ui_sidemenu(){
 		}
 		
 		var leftOrRight = 'left';		if (isRightBound) leftOrRight = 'right';
-		function cssLeftOrRight(value){
+		var leftOrRightOpen = menuWidth;
+		var leftOrRightClosed = 0;
+		function cssLeftOrRight(value){		//TODO: remove
 			var css = {};
+			//reset
+			css['left'] = 'auto';
+			css['right'] = 'auto';
+			//assign
 			css[leftOrRight] = value;
 			return css;
 		}
-		function getCssLeftOrRight(){
-			return parseInt($sidemenu.css(leftOrRight));
+		function updateLeftOrRightClosePosition(){
+			leftOrRightClosed = 0;
+		}
+		function updateLeftOrRightOpenPosition(){
+			if (leftOrRight == 'left'){
+				leftOrRightOpen = menuWidth;
+			}else{
+				leftOrRightOpen = -menuWidth;
+			}
 		}
 		
+		var lastX = 0;
 		var lastDeltaX = 0;
-		var lastLeftOrRight = -menuWidth;
 		var errorResetTimer;
 	
 		self.init = function() {
 			//TODO: write a destroy function as well?
 			menuWidth = $sidemenu.outerWidth();
+			updateLeftOrRightClosePosition();
+			updateLeftOrRightOpenPosition();
 			$sidemenu.css(cssLeftOrRight(-menuWidth + 'px'));
 			self.isOpen = false;
 			//listen for size changes
@@ -82,43 +100,36 @@ function bytemind_build_ui_sidemenu(){
 		}
 		self.refresh = function() {
 			menuWidth = $sidemenu.outerWidth();
+			updateLeftOrRightClosePosition();
+			updateLeftOrRightOpenPosition();
+			$sidemenu.css(cssLeftOrRight(-menuWidth + 'px'));
 			if (self.isOpen){
-				$sidemenu.css(cssLeftOrRight('0'));
+				setContainerOffsetX(leftOrRightOpen, true);
 			}else{
-				$sidemenu.css(cssLeftOrRight(-menuWidth + 'px'));
+				setContainerOffsetX(leftOrRightClosed, true);
 				//self.isOpen = false;
 			}
 		}
 		
-		self.open = function(){
+		self.setSmoothTimeMs = function(timeMs){
+			transformSmoothing = ('transform .' + timeMs + 's');
+		}
+		
+		self.open = function(skipAnimation){
 			clearTimeout(errorResetTimer);
-			/*
-			$sidemenu
-				.addClass('transition')
-				.one(transitionEnd, function() {
-					$sidemenu.removeClass('transition');
-					clearTimeout(errorResetTimer);
-				}).css({
-					(''+leftOrRight): 0
-				});
-			*/
-			$sidemenu.stop().animate(cssLeftOrRight('0'), 300, 'bytemind-sidebar');
+			setContainerOffsetX(leftOrRightOpen, !skipAnimation);
 			if ($interlayer) $interlayer.fadeIn(300);
 			self.isOpen = true;
-			lastLeftOrRight = 0;
+			lastX = leftOrRightOpen;
 			if (onMenuOpen) onMenuOpen();
 		}
 		
 		self.close = function(skipAnimation){
 			clearTimeout(errorResetTimer);
-			if (skipAnimation){
-				$sidemenu.css(cssLeftOrRight(-menuWidth + 'px'));
-			}else{
-				$sidemenu.stop().animate(cssLeftOrRight(-menuWidth + 'px'), 300, 'bytemind-sidebar');
-			}
+			setContainerOffsetX(leftOrRightClosed, !skipAnimation);
 			if ($interlayer) $interlayer.fadeOut(300);
 			self.isOpen = false;
-			lastLeftOrRight = -menuWidth;
+			lastX = leftOrRightClosed;
 			if (onMenuClose) onMenuClose();
 		}
 		
@@ -131,21 +142,23 @@ function bytemind_build_ui_sidemenu(){
 			}
 		}
 		
-		function setContainerOffsetX(offsetX) {
-			var absOffset = lastLeftOrRight + offsetX;
+		function setContainerOffsetX(offsetX, doTransition) {
 			//stop at the edges
-			if (absOffset > -menuWidth && absOffset <= 0){
-				$sidemenu.css(cssLeftOrRight(absOffset));
+			if (Math.abs(offsetX) <= Math.abs(menuWidth)){
+				if (doTransition) {
+					$sidemenu.stop().css({
+						'transition': 'transform .3s',
+						'transform': 'translate3d(' + offsetX + "px" + ', 0px, 0px)'
+					}).on('transitionend', function() {
+						clearTimeout(errorResetTimer);
+						$sidemenu.css({'transition': transformSmoothing});
+					});
+				}else{
+					$sidemenu.stop().css({
+						'transform': 'translate3d(' + offsetX + "px" + ', 0px, 0px)'
+					});
+				}
 			}
-		}
-		function outOfBound(){
-			var pos;
-			if (isRightBound){
-				pos = $sidemenu.position().right;
-			}else{
-				pos = $sidemenu.position().left;
-			}
-			return (pos >= 0) || (pos <= -menuWidth);
 		}
 		
 		function decideDirectionAndSlide(deltaX, e){
@@ -218,7 +231,7 @@ function bytemind_build_ui_sidemenu(){
 				case 'panleft':
 				case 'panright':
 					lastDeltaX = e.deltaX;
-					setContainerOffsetX(e.deltaX);
+					setContainerOffsetX(lastX + e.deltaX);
 					break;
 				case 'panend':
 				case 'pancancel':

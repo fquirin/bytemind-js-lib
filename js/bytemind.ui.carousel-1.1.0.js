@@ -22,7 +22,16 @@ function bytemind_build_ui_carousel(){
 	}
 	*/
 	
+	//add carousel ease function
+	jQuery.easing['bytemind-carousel'] = function (x, t, b, c, d) {
+		//easeOutQuad
+		return -c *(t/=d)*(t-2) + b;
+	}
+	
 	var transitionEnd = 'webkitTransitionEnd otransitionend oTransitionEnd msTransitionEnd transitionend';
+	
+	var transformSmoothing = 'transform .15s';	//when using "no transition" there is still a slight delay to smooth the pan.
+	//TODO: for firefox and IE this should be 0, this also may look awkward when resizing the window!
 	
 	//Basis for this code is taken from the nice Hammer.js carousel demo: https://jsfiddle.net/Richard_Liu/7cqqcrmm/
 	var Carousel = function(carouselSelector, swipeAreas, onPaneSet) {
@@ -71,6 +80,10 @@ function bytemind_build_ui_carousel(){
 			});
 			hammers = [];
 		}
+		
+		self.setSmoothTimeMs = function(timeMs){
+			transformSmoothing = ('transform .' + timeMs + 's');
+		}
 
 		self.showPane = function(index) {
 			currentPane = Math.max(0, Math.min(index, paneCount - 1));
@@ -81,16 +94,36 @@ function bytemind_build_ui_carousel(){
 
 		function setContainerOffsetX(offsetX, doTransition) {
 			if (doTransition) {
-			  $container
-				.addClass('transition')
-				.one(transitionEnd, function() {
-					$container.removeClass('transition');
+				/*
+				$container
+					.addClass('transition')
+					.one(transitionEnd, function() {
+						$container.removeClass('transition');
+						clearTimeout(errorResetTimer);
+					})
+				*/
+				/*
+				$container.stop().animate({left: offsetX + "px"}, 300, 'bytemind-carousel', function(){
 					clearTimeout(errorResetTimer);
-				})
+				});
+				*/
+				$container.stop().css({
+					'transition': 'transform .3s',
+					'transform': 'translate3d(' + offsetX + "px" + ', 0px, 0px)'
+				}).on('transitionend', function() {
+					clearTimeout(errorResetTimer);
+					$container.css({'transition': transformSmoothing});	//TODO: for firefox and IE this should be 0, this also may look awkward when resizing the window!
+				});
+			}else{
+				/*
+				$container.stop().css({
+					left: offsetX
+				});
+				*/
+				$container.stop().css({
+					'transform': 'translate3d(' + offsetX + "px" + ', 0px, 0px)'
+				});
 			}
-			$container.css({
-				left: offsetX
-			});
 		}
 
 		self.next = function() {
